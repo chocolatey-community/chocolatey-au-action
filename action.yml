@@ -1,0 +1,85 @@
+name: 'Chocolatey AU'
+description: 'Run Chocolatey-AU to update and optionally test, push, and commit Chocolatey packages'
+author: 'stephen'
+
+branding:
+  icon: 'package'
+  color: 'blue'
+
+inputs:
+  package-paths:
+    description: >
+      Newline-separated or comma-separated list of relative paths to the package
+      directories to update. Each directory must contain an update.ps1 script.
+    required: true
+
+  push:
+    description: 'Push updated packages to a Chocolatey feed'
+    required: false
+    default: 'false'
+
+  api-key:
+    description: 'API key used to push packages to the Chocolatey feed'
+    required: false
+    default: ''
+
+  choco-server:
+    description: 'Chocolatey server URL to push packages to'
+    required: false
+    default: 'https://push.chocolatey.org/'
+
+  test-install:
+    description: 'Run Test-Package to verify the package installs correctly before pushing'
+    required: false
+    default: 'false'
+
+  commit-changes:
+    description: 'Commit updated nuspec and ps1 files back to the repository after a successful update'
+    required: false
+    default: 'false'
+
+  commit-message:
+    description: 'Commit message used when commit-changes is true'
+    required: false
+    default: 'chore: apply Chocolatey-AU package updates [skip ci]'
+
+outputs:
+  results:
+    description: 'JSON array summarising the update result for each package'
+    value: ${{ steps.au-update.outputs.results }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Chocolatey-AU
+      shell: pwsh
+      run: Install-Module -Name Chocolatey-AU -Force -Scope CurrentUser
+
+    - name: Run AU Update
+      id: au-update
+      shell: pwsh
+      env:
+        AU_PACKAGE_PATHS: ${{ inputs.package-paths }}
+        AU_PUSH: ${{ inputs.push }}
+        AU_API_KEY: ${{ inputs.api-key }}
+        AU_CHOCO_SERVER: ${{ inputs.choco-server }}
+        AU_TEST_INSTALL: ${{ inputs.test-install }}
+      run: |
+        & "${{ github.action_path }}/scripts/Invoke-AUUpdate.ps1"
+
+    - name: Commit changes
+      if: ${{ inputs.commit-changes == 'true' }}
+      shell: pwsh
+      env:
+        COMMIT_MESSAGE: ${{ inputs.commit-message }}
+      run: |
+        git config user.name  "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -- '*.nuspec' '**/*.nuspec' '*.ps1' '**/*.ps1'
+        $staged = git diff --staged --name-only
+        if ($staged) {
+          git commit -m $env:COMMIT_MESSAGE
+          git push
+        } else {
+          Write-Host "No changes to commit."
+        }
