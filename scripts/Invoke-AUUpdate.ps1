@@ -3,15 +3,6 @@ param()
 
 $ErrorActionPreference = 'Stop'
 
-#region Helpers
-
-function Write-ActionGroup([string]$Title) { Write-Host "::group::$Title" }
-function Close-ActionGroup                 { Write-Host "::endgroup::" }
-function Write-ActionError([string]$Msg)   { Write-Host "::error::$Msg" }
-function Write-ActionWarning([string]$Msg) { Write-Host "::warning::$Msg" }
-
-#endregion
-
 # ---------------------------------------------------------------------------
 # Inputs
 # ---------------------------------------------------------------------------
@@ -21,7 +12,7 @@ $packagePaths = ($env:AU_PACKAGE_PATHS -split '[\r\n,]+') |
     Where-Object   { $_ -ne '' }
 
 if (-not $packagePaths) {
-    Write-ActionError 'No package paths were provided via the package-paths input.'
+    Write-Output '::error::No package paths were provided via the package-paths input.'
     exit 1
 }
 
@@ -51,7 +42,7 @@ foreach ($packagePath in $packagePaths) {
         Error     = $null
     }
 
-    Write-ActionGroup "Updating: $packagePath"
+    Write-Output "::group::Updating: $packagePath"
 
     try {
         if (-not (Test-Path -LiteralPath $packagePath -PathType Container)) {
@@ -71,7 +62,7 @@ foreach ($packagePath in $packagePaths) {
                 @($updateOutput | ForEach-Object { "$_" })
             }
 
-            Write-Host ($resultLines -join "`n")
+            Write-Output ($resultLines -join "`n")
 
             # Determine whether the package was actually updated.
             $isUpdated = if ($null -ne $updateOutput.Updated) {
@@ -107,37 +98,37 @@ foreach ($packagePath in $packagePaths) {
                 }
 
                 $versionSuffix = if ($result.Version) { " to v$($result.Version)" } else { '' }
-                Write-Host "Package updated${versionSuffix}."
+                Write-Output "Package updated${versionSuffix}."
 
                 # --- Test install ---
                 if ($testInstall) {
                     if ($result.NupkgPath) {
-                        Write-Host 'Running Test-Package...'
+                        Write-Output 'Running Test-Package...'
                         try {
                             Test-Package -Install -Nu $result.NupkgPath
-                            Write-Host 'Test-Package succeeded.'
+                            Write-Output 'Test-Package succeeded.'
                         } catch {
-                            Write-ActionWarning "Test-Package failed for '${packagePath}': $_"
+                            Write-Output "::warning::Test-Package failed for '${packagePath}': $_"
                         }
                     } else {
-                        Write-ActionWarning "test-install is enabled but no .nupkg path was found for '${packagePath}'; skipping."
+                        Write-Output "::warning::test-install is enabled but no .nupkg path was found for '${packagePath}'; skipping."
                     }
                 }
 
                 # --- Push ---
                 if ($push) {
                     if ([string]::IsNullOrWhiteSpace($apiKey)) {
-                        Write-ActionWarning "push is enabled but api-key is empty; skipping push for '${packagePath}'."
+                        Write-Output "::warning::push is enabled but api-key is empty; skipping push for '${packagePath}'."
                     } elseif (-not $result.NupkgPath) {
-                        Write-ActionWarning "push is enabled but no .nupkg path was found for '${packagePath}'; skipping push."
+                        Write-Output "::warning::push is enabled but no .nupkg path was found for '${packagePath}'; skipping push."
                     } else {
-                        Write-Host "Pushing $($result.NupkgPath) to ${chocoServer} ..."
+                        Write-Output "Pushing $($result.NupkgPath) to ${chocoServer} ..."
                         choco push $result.NupkgPath --source $chocoServer --key $apiKey
                     }
                 }
 
             } else {
-                Write-Host 'No new version found; nothing to do.'
+                Write-Output 'No new version found; nothing to do.'
             }
 
         } finally {
@@ -148,10 +139,10 @@ foreach ($packagePath in $packagePaths) {
         $result.Status = 'Error'
         $result.Error  = $_.ToString()
         $hasErrors     = $true
-        Write-ActionError "Failed to process '${packagePath}': $_"
+        Write-Output "::error::Failed to process '${packagePath}': $_"
     }
 
-    Close-ActionGroup
+    Write-Output '::endgroup::'
     $allResults.Add($result)
 }
 
@@ -171,7 +162,7 @@ $summaryRows = $allResults | ForEach-Object {
 }
 
 @(
-    '# Chocolatey AU Update Results'
+    '# Chocolatey-AU Update Results'
     ''
     '| Package | Status | Version |'
     '|---------|--------|---------|'
@@ -190,6 +181,6 @@ $resultsJson = $allResults | ConvertTo-Json -Compress -Depth 5
 # ---------------------------------------------------------------------------
 
 if ($hasErrors) {
-    Write-ActionError 'One or more packages encountered errors during processing.'
+    Write-Output '::error::One or more packages encountered errors during processing.'
     exit 1
 }
