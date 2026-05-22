@@ -9,7 +9,7 @@ A GitHub Action that runs the [Chocolatey Automatic Package Updater (Chocolatey-
 ## Usage
 
 ```yaml
-- uses: your-org/chocolatey-au-action@v1
+- uses: chocolatey-community/chocolatey-au-action@v1
   with:
     package-paths: |
       automatic/mypackage
@@ -37,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: your-org/chocolatey-au-action@v1
+      - uses: chocolatey-community/chocolatey-au-action@v1
         with:
           package-paths: |
             automatic/mypackage
@@ -52,7 +52,7 @@ jobs:
 ### Single package, comma-separated paths
 
 ```yaml
-- uses: your-org/chocolatey-au-action@v1
+- uses: chocolatey-community/chocolatey-au-action@v1
   with:
     package-paths: automatic/mypackage, automatic/anotherpackage
 ```
@@ -82,7 +82,7 @@ jobs:
 ### Using the `results` output
 
 ```yaml
-- uses: your-org/chocolatey-au-action@v1
+- uses: chocolatey-community/chocolatey-au-action@v1
   id: au
   with:
     package-paths: automatic/mypackage

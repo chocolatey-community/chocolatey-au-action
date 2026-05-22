@@ -1,6 +1,6 @@
 name: 'Chocolatey AU'
 description: 'Run Chocolatey-AU to update and optionally test, push, and commit Chocolatey packages'
-author: 'stephen'
+author: 'chocolatey-community'
 
 branding:
   icon: 'package'
