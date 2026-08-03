@@ -10,7 +10,9 @@ inputs:
   package-paths:
     description: >
       Newline-separated or comma-separated list of relative paths to the package
-      directories to update. Each directory must contain an update.ps1 script.
+      directories to update. Wildcard patterns are supported (e.g. "automatic/*")
+      and will be expanded to all matching subdirectories that contain an
+      update.ps1 script.
     required: true
 
   push:

@@ -49,6 +49,28 @@ jobs:
           commit-message: 'chore: Chocolatey-AU update [skip ci]'
 ```
 
+### Wildcard patterns
+
+Instead of listing every package directory individually, you can use a wildcard pattern to match all subdirectories under a given folder:
+
+```yaml
+- uses: chocolatey-community/chocolatey-au-action@v1
+  with:
+    package-paths: automatic/*
+```
+
+This expands to every **immediate subdirectory** of `automatic/` that contains an `update.ps1` script (e.g. `automatic/mypackage`, `automatic/anotherpackage`, etc.). The wildcard is not recursive — `automatic/*` matches one level deep, not nested subdirectories like `automatic/group/pkg`.
+
+You can mix and match explicit paths with wildcard patterns:
+
+```yaml
+- uses: chocolatey-community/chocolatey-au-action@v1
+  with:
+    package-paths: |
+      automatic/*
+      manual/specialpackage
+```
+
 ### Single package, comma-separated paths
 
 ```yaml
@@ -63,7 +85,7 @@ jobs:
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `package-paths` | **Yes** | — | Newline-separated or comma-separated list of relative paths to package directories. Each directory must contain an `update.ps1` script. |
+| `package-paths` | **Yes** | — | Newline-separated or comma-separated list of relative paths to package directories. Wildcard patterns (e.g. `automatic/*`) are supported and expand to all matching subdirectories containing an `update.ps1` script. |
 | `push` | No | `false` | Push updated packages to a Chocolatey feed. |
 | `api-key` | No | `''` | API key used to authenticate with the Chocolatey feed. Required when `push` is `true`. |
 | `choco-server` | No | `https://push.chocolatey.org/` | Chocolatey server URL to push packages to. |
@@ -99,7 +121,7 @@ jobs:
 
 ## Package directory structure
 
-Each path supplied via `package-paths` must be a directory containing an `update.ps1` that follows the standard Chocolatey-AU convention:
+Each path supplied via `package-paths` must be a directory containing an `update.ps1` that follows the standard Chocolatey-AU convention. When using wildcard patterns, only subdirectories that contain an `update.ps1` are included — others are silently skipped.
 
 ```
 automatic/

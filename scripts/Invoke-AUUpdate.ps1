@@ -4,15 +4,56 @@ param()
 $ErrorActionPreference = 'Stop'
 
 # ---------------------------------------------------------------------------
+# Helper: Resolve package paths, expanding wildcard patterns
+# ---------------------------------------------------------------------------
+
+function Resolve-PackagePaths {
+    param(
+        [string[]]$Patterns
+    )
+
+    $seen = @{}
+
+    foreach ($pattern in $Patterns) {
+        $directories = Get-ChildItem -Path $pattern -Directory -ErrorAction SilentlyContinue
+
+        if (-not $directories) {
+            Write-Output "::warning::Pattern '$pattern' did not match any directories; skipping."
+            continue
+        }
+
+        foreach ($dir in $directories) {
+            $hasUpdateScript = Test-Path -LiteralPath (Join-Path $dir.FullName 'update.ps1') -PathType Leaf
+
+            if (-not $hasUpdateScript) {
+                continue
+            }
+
+            if (-not $seen.ContainsKey($dir.FullName)) {
+                $seen[$dir.FullName] = $true
+                $dir.FullName
+            }
+        }
+    }
+}
+
+# ---------------------------------------------------------------------------
 # Inputs
 # ---------------------------------------------------------------------------
 
-$packagePaths = ($env:AU_PACKAGE_PATHS -split '[\r\n,]+') |
+$rawPaths = ($env:AU_PACKAGE_PATHS -split '[\r\n,]+') |
     ForEach-Object { $_.Trim() } |
     Where-Object   { $_ -ne '' }
 
-if (-not $packagePaths) {
+if (-not $rawPaths) {
     Write-Output '::error::No package paths were provided via the package-paths input.'
+    exit 1
+}
+
+$packagePaths = @(Resolve-PackagePaths -Patterns $rawPaths)
+
+if ($packagePaths.Count -eq 0) {
+    Write-Output '::error::No valid package directories found after resolving paths.'
     exit 1
 }
 
@@ -45,10 +86,6 @@ foreach ($packagePath in $packagePaths) {
     Write-Output "::group::Updating: $packagePath"
 
     try {
-        if (-not (Test-Path -LiteralPath $packagePath -PathType Container)) {
-            throw "Path '$packagePath' does not exist or is not a directory."
-        }
-
         Push-Location -LiteralPath $packagePath
 
         try {
