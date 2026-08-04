@@ -13,12 +13,13 @@ function Resolve-PackagePaths {
     )
 
     $seen = @{}
+    $results = @()
 
     foreach ($pattern in $Patterns) {
         $directories = Get-ChildItem -Path $pattern -Directory -ErrorAction SilentlyContinue
 
         if (-not $directories) {
-            Write-Output "::warning::Pattern '$pattern' did not match any directories; skipping."
+            Write-Host "::warning::Pattern '$pattern' did not match any directories; skipping."
             continue
         }
 
@@ -26,16 +27,18 @@ function Resolve-PackagePaths {
             $hasUpdateScript = Test-Path -LiteralPath (Join-Path $dir.FullName 'update.ps1') -PathType Leaf
 
             if (-not $hasUpdateScript) {
-                Write-Output "::warning::Pattern '$pattern' matched directory '$($dir.FullName)' but no update.ps1 script was found; skipping."
+                Write-Host "::warning::Pattern '$pattern' matched directory '$($dir.FullName)' but no update.ps1 script was found; skipping."
                 continue
             }
 
             if (-not $seen.ContainsKey($dir.FullName)) {
                 $seen[$dir.FullName] = $true
-                $dir.FullName
+                $results += $dir.FullName
             }
         }
     }
+
+    return $results
 }
 
 # ---------------------------------------------------------------------------
