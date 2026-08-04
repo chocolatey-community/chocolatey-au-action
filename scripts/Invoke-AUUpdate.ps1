@@ -26,6 +26,7 @@ function Resolve-PackagePaths {
             $hasUpdateScript = Test-Path -LiteralPath (Join-Path $dir.FullName 'update.ps1') -PathType Leaf
 
             if (-not $hasUpdateScript) {
+                Write-Output "::warning::Pattern '$pattern' matched directory '$($dir.FullName)' but no update.ps1 script was found; skipping."
                 continue
             }
 
@@ -42,8 +43,8 @@ function Resolve-PackagePaths {
 # ---------------------------------------------------------------------------
 
 $rawPaths = ($env:AU_PACKAGE_PATHS -split '[\r\n,]+') |
-    ForEach-Object { $_.Trim() } |
-    Where-Object   { $_ -ne '' }
+ForEach-Object { $_.Trim() } |
+Where-Object { $_ -ne '' }
 
 if (-not $rawPaths) {
     Write-Output '::error::No package paths were provided via the package-paths input.'
@@ -57,11 +58,12 @@ if ($packagePaths.Count -eq 0) {
     exit 1
 }
 
-$push        = $env:AU_PUSH        -eq 'true'
-$apiKey      = $env:AU_API_KEY
+$push = $env:AU_PUSH -eq 'true'
+$apiKey = $env:AU_API_KEY
 $chocoServer = if ([string]::IsNullOrWhiteSpace($env:AU_CHOCO_SERVER)) {
     'https://push.chocolatey.org/'
-} else {
+}
+else {
     $env:AU_CHOCO_SERVER
 }
 $testInstall = $env:AU_TEST_INSTALL -eq 'true'
@@ -71,7 +73,7 @@ $testInstall = $env:AU_TEST_INSTALL -eq 'true'
 # ---------------------------------------------------------------------------
 
 $allResults = [System.Collections.Generic.List[object]]::new()
-$hasErrors  = $false
+$hasErrors = $false
 
 foreach ($packagePath in $packagePaths) {
 
@@ -95,7 +97,8 @@ foreach ($packagePath in $packagePaths) {
             # Fall back to treating the raw output as text if .Result is absent.
             $resultLines = if ($null -ne $updateOutput -and $null -ne $updateOutput.Result) {
                 @($updateOutput.Result)
-            } else {
+            }
+            else {
                 @($updateOutput | ForEach-Object { "$_" })
             }
 
@@ -104,7 +107,8 @@ foreach ($packagePath in $packagePaths) {
             # Determine whether the package was actually updated.
             $isUpdated = if ($null -ne $updateOutput.Updated) {
                 [bool]$updateOutput.Updated
-            } else {
+            }
+            else {
                 -not ($resultLines | Where-Object { $_ -match 'No new version found' })
             }
 
@@ -114,12 +118,13 @@ foreach ($packagePath in $packagePaths) {
                 # Extract nupkg path from AU result lines.
                 # AU wraps the path in single quotes: 'C:\...\pkg.1.0.0.nupkg'
                 $nupkgLine = $resultLines |
-                    Where-Object { $_ -like "*.nupkg'*" } |
-                    Select-Object -First 1
+                Where-Object { $_ -like "*.nupkg'*" } |
+                Select-Object -First 1
 
                 if ($nupkgLine) {
                     $result.NupkgPath = ($nupkgLine -split "'")[1]
-                } else {
+                }
+                else {
                     # Fallback: regex match for any .nupkg path in quotes
                     $match = $resultLines | ForEach-Object {
                         if ($_ -match "['\`"]([^'\`"]+\.nupkg)['\`"]") { $Matches[1] }
@@ -130,7 +135,8 @@ foreach ($packagePath in $packagePaths) {
                 # Extract version from AU object properties.
                 if ($null -ne $updateOutput.NuspecVersion) {
                     $result.Version = $updateOutput.NuspecVersion.ToString()
-                } elseif ($null -ne $updateOutput.RemoteVersion) {
+                }
+                elseif ($null -ne $updateOutput.RemoteVersion) {
                     $result.Version = $updateOutput.RemoteVersion.ToString()
                 }
 
@@ -144,10 +150,12 @@ foreach ($packagePath in $packagePaths) {
                         try {
                             Test-Package -Install -Nu $result.NupkgPath
                             Write-Output 'Test-Package succeeded.'
-                        } catch {
+                        }
+                        catch {
                             Write-Output "::warning::Test-Package failed for '${packagePath}': $_"
                         }
-                    } else {
+                    }
+                    else {
                         Write-Output "::warning::test-install is enabled but no .nupkg path was found for '${packagePath}'; skipping."
                     }
                 }
@@ -156,26 +164,31 @@ foreach ($packagePath in $packagePaths) {
                 if ($push) {
                     if ([string]::IsNullOrWhiteSpace($apiKey)) {
                         Write-Output "::warning::push is enabled but api-key is empty; skipping push for '${packagePath}'."
-                    } elseif (-not $result.NupkgPath) {
+                    }
+                    elseif (-not $result.NupkgPath) {
                         Write-Output "::warning::push is enabled but no .nupkg path was found for '${packagePath}'; skipping push."
-                    } else {
+                    }
+                    else {
                         Write-Output "Pushing $($result.NupkgPath) to ${chocoServer} ..."
                         choco push $result.NupkgPath --source $chocoServer --key $apiKey
                     }
                 }
 
-            } else {
+            }
+            else {
                 Write-Output 'No new version found; nothing to do.'
             }
 
-        } finally {
+        }
+        finally {
             Pop-Location
         }
 
-    } catch {
+    }
+    catch {
         $result.Status = 'Error'
-        $result.Error  = $_.ToString()
-        $hasErrors     = $true
+        $result.Error = $_.ToString()
+        $hasErrors = $true
         Write-Output "::error::Failed to process '${packagePath}': $_"
     }
 
@@ -189,10 +202,10 @@ foreach ($packagePath in $packagePaths) {
 
 $summaryRows = $allResults | ForEach-Object {
     $icon = switch ($_.Status) {
-        'Updated'  { ':white_check_mark:' }
+        'Updated' { ':white_check_mark:' }
         'NoUpdate' { ':fast_forward:' }
-        'Error'    { ':x:' }
-        default    { ':grey_question:' }
+        'Error' { ':x:' }
+        default { ':grey_question:' }
     }
     $ver = if ($_.Version) { $_.Version } else { '—' }
     "| ``$($_.Package)`` | $icon $($_.Status) | $ver |"
