@@ -12,7 +12,6 @@ function Resolve-PackagePaths {
         [string[]]$Patterns
     )
 
-    $seen = @{}
     $results = @()
 
     foreach ($pattern in $Patterns) {
@@ -31,10 +30,7 @@ function Resolve-PackagePaths {
                 continue
             }
 
-            if (-not $seen.ContainsKey($dir.FullName)) {
-                $seen[$dir.FullName] = $true
-                $results += $dir.FullName
-            }
+            $results += $dir.FullName
         }
     }
 
