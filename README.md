@@ -2,7 +2,7 @@
 
 A GitHub Action that runs the [Chocolatey Automatic Package Updater (Chocolatey-AU)](https://github.com/chocolatey-community/chocolatey-au) module to update one or more Chocolatey packages, with optional test, push, and commit support.
 
-Version `2.0` introduces wildcard path support for `package-paths`, so you can target many package directories without listing each one explicitly.
+Version `3.0` isolates Chocolatey-AU callback functions between packages, preventing callbacks from one package from affecting packages processed later in the same action run. Wildcard path support remains available for targeting multiple package directories.
 
 > **Platform:** This action requires a `windows-latest` (or other Windows) runner because Chocolatey and the Chocolatey-AU module are Windows-only.
 
@@ -11,7 +11,7 @@ Version `2.0` introduces wildcard path support for `package-paths`, so you can t
 ## Usage
 
 ```yaml
-- uses: chocolatey-community/chocolatey-au-action@2.0
+- uses: chocolatey-community/chocolatey-au-action@3.0
   with:
     package-paths: |
       automatic/mypackage
@@ -39,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: chocolatey-community/chocolatey-au-action@2.0
+      - uses: chocolatey-community/chocolatey-au-action@3.0
         with:
           package-paths: |
             automatic/mypackage
@@ -56,7 +56,7 @@ jobs:
 Instead of listing every package directory individually, you can use a wildcard pattern to match all subdirectories under a given folder:
 
 ```yaml
-- uses: chocolatey-community/chocolatey-au-action@2.0
+- uses: chocolatey-community/chocolatey-au-action@3.0
   with:
     package-paths: automatic/*
 ```
@@ -66,7 +66,7 @@ This expands to every **immediate subdirectory** of `automatic/` that contains a
 You can mix and match explicit paths with wildcard patterns:
 
 ```yaml
-- uses: chocolatey-community/chocolatey-au-action@2.0
+- uses: chocolatey-community/chocolatey-au-action@3.0
   with:
     package-paths: |
       automatic/*
@@ -76,7 +76,7 @@ You can mix and match explicit paths with wildcard patterns:
 ### Single package, comma-separated paths
 
 ```yaml
-- uses: chocolatey-community/chocolatey-au-action@2.0
+- uses: chocolatey-community/chocolatey-au-action@3.0
   with:
     package-paths: automatic/mypackage, automatic/anotherpackage
 ```
@@ -106,7 +106,7 @@ You can mix and match explicit paths with wildcard patterns:
 ### Using the `results` output
 
 ```yaml
-- uses: chocolatey-community/chocolatey-au-action@2.0
+- uses: chocolatey-community/chocolatey-au-action@3.0
   id: au
   with:
     package-paths: automatic/mypackage
