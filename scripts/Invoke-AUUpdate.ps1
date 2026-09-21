@@ -37,6 +37,20 @@ function Resolve-PackagePaths {
     return $results
 }
 
+function Clear-AUFunction {
+    [CmdletBinding()]
+    Param(
+        [Parameter()]
+        [String[]]
+        $FunctionList = @('au_GetLatest', 'au_SearchReplace', 'au_BeforeUpdate', 'au_AfterUpdate')
+    )
+     
+    $FunctionList |
+    ForEach-Object { 
+        Remove-Item -Path "Function:\$_" -ErrorAction SilentlyContinue 
+    }
+}
+
 # ---------------------------------------------------------------------------
 # Inputs
 # ---------------------------------------------------------------------------
@@ -90,6 +104,7 @@ foreach ($packagePath in $packagePaths) {
         Push-Location -LiteralPath $packagePath
 
         try {
+            Clear-AUFunction
             $updateOutput = & .\update.ps1
 
             # AU returns an AUPackage object with a .Result string array.
